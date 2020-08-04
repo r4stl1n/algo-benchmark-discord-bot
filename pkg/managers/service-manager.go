@@ -2,44 +2,62 @@ package managers
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/r4stl1n/algo-benchmark-discord-bot/pkg/dto"
 )
 
 type ServiceManager struct {
+	Config        *dto.ConfigStruct
+	DiscordClient *discordgo.Session
 }
 
-func CreateServiceManager() *ServiceManager {
+func CreateServiceManager(config *dto.ConfigStruct) *ServiceManager {
 
-	return &ServiceManager{}
+	return &ServiceManager{
+		Config: config,
+	}
 
 }
 
 func (serviceManager *ServiceManager) Initalize() error {
 
-	dg, err := discordgo.New("Bot " + configStruct.BotToken)
-	if err != nil {
-		fmt.Println("error creating Discord session,", err)
-		return
+	discordClient, discordClientError := discordgo.New("Bot " + serviceManager.Config.BotToken)
+
+	if discordClientError != nil {
+		return discordClientError
 	}
 
-	// Register the messageCreate func as a callback for MessageCreate events.
-	dg.AddHandler(messageCreate)
+	serviceManager.DiscordClient = discordClient
 
-	// In this example, we only care about receiving message events.
-	dg.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages)
+	serviceManager.DiscordClient.AddHandler(serviceManager.messageHandler)
 
-	// Open a websocket connection to Discord and begin listening.
-	err = dg.Open()
-	if err != nil {
-		fmt.Println("error opening connection,", err)
-		return
+	serviceManager.DiscordClient.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages)
+
+	discordWebsocketError := serviceManager.DiscordClient.Open()
+
+	if discordWebsocketError != nil {
+		return discordWebsocketError
 	}
 
-	// Wait here until CTRL-C or other term signal is received.
-	fmt.Println("Bot is now running.  Press CTRL-C to exit.")
-	sc := make(chan os.Signal, 1)
-	signal.Notify(sc, syscall.SIGINT, syscall.SIGTERM, os.Interrupt, os.Kill)
-	<-sc
+	return nil
+}
 
-	// Cleanly close down the Discord session.
-	dg.Close()
+func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	// Ignore all messages created by the bot itself
+	// This isn't required in this specific example but it's a good practice.
+	if m.Author.ID == s.State.User.ID {
+		return
+	}
+	// If the message is "ping" reply with "Pong!"
+	if m.Content == "ping" {
+		s.ChannelMessageSend(m.ChannelID, "Pong!")
+	}
+
+	// If the message is "pong" reply with "Ping!"
+	if m.Content == "pong" {
+		s.ChannelMessageSend(m.ChannelID, "Ping!")
+	}
+}
+func (serviceManager *ServiceManager) Shutdown() {
+	serviceManager.DiscordClient.Close()
 }

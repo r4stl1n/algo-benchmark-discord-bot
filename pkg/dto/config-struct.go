@@ -1,5 +1,6 @@
-package util
+package dto
 
-type ConfgiStruct struct {
-	BotToken string
+type ConfigStruct struct {
+	BotToken       string
+	HttpListenPort int
 }
