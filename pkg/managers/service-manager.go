@@ -3,6 +3,7 @@ package managers
 import (
 	"github.com/bwmarrin/discordgo"
 	"github.com/r4stl1n/algo-benchmark-discord-bot/pkg/dto"
+	"github.com/sirupsen/logrus"
 )
 
 type ServiceManager struct {
@@ -43,6 +44,57 @@ func (serviceManager *ServiceManager) Initalize() error {
 	return nil
 }
 
+func (serviceManager *ServiceManager) handleRegisterCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
+
+	if chanCreateError != nil {
+		logrus.Error(chanCreateError)
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExist(m.Author.ID) == true {
+		s.ChannelMessageSend(chanCreate.ID, "You are already registered")
+		return
+	}
+
+	participantUUID, participantRegisterError := serviceManager.DatabaseClient.CreateParticipant(m.Author.ID)
+
+	if participantRegisterError != nil {
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't register")
+	}
+
+	s.ChannelMessageSend(chanCreate.ID, "Welcome to the algo-benchmark")
+	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participantUUID)
+
+}
+
+func (serviceManager *ServiceManager) handleGiveIDCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
+
+	if chanCreateError != nil {
+		logrus.Error(chanCreateError)
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExist(m.Author.ID) != true {
+		s.ChannelMessageSend(chanCreate.ID, "You are not registered")
+		return
+	}
+
+	participant, participantError := serviceManager.DatabaseClient.GetParticipant(m.Author.ID)
+
+	if participantError != nil {
+		logrus.Error(participantError)
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
+	}
+
+	s.ChannelMessageSend(chanCreate.ID, "Join Date: "+participant.CreatedAt.String())
+	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participant.UUID)
+
+}
+
 func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Ignore all messages created by the bot itself
@@ -50,16 +102,19 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 	if m.Author.ID == s.State.User.ID {
 		return
 	}
-	// If the message is "ping" reply with "Pong!"
-	if m.Content == "ping" {
-		s.ChannelMessageSend(m.ChannelID, "Pong!")
+
+	logrus.Debug("Got message from user: " + m.Author.ID + " - " + m.Content)
+
+	if m.Content == "!register" {
+
+		serviceManager.handleRegisterCommand(s, m)
+
+	} else if m.Content == "!giveid" {
+		serviceManager.handleGiveIDCommand(s, m)
 	}
 
-	// If the message is "pong" reply with "Ping!"
-	if m.Content == "pong" {
-		s.ChannelMessageSend(m.ChannelID, "Ping!")
-	}
 }
+
 func (serviceManager *ServiceManager) Shutdown() {
 	serviceManager.DiscordClient.Close()
 }
