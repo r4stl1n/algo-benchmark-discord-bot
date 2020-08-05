@@ -15,6 +15,8 @@ func main() {
 
 	util.PrintBanner()
 
+	logrus.SetLevel(logrus.DebugLevel)
+
 	logrus.Info("Loading configuration file")
 
 	configFile, configLoadError := ioutil.ReadFile("config.json")

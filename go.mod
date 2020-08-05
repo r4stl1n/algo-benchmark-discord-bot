@@ -6,5 +6,6 @@ require (
 	github.com/bwmarrin/discordgo v0.22.0
 	github.com/jinzhu/gorm v1.9.15
 	github.com/satori/go.uuid v1.2.0
+	github.com/shopspring/decimal v1.2.0
 	github.com/sirupsen/logrus v1.6.0
 )

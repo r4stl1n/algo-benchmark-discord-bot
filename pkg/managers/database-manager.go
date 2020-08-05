@@ -74,3 +74,22 @@ func (databaseManager *DatabaseManager) GetParticipant(authorID string) (*dto.Pa
 
 	return participantModel, nil
 }
+
+func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, roiValue float64) (string, error) {
+
+	newUUID := uuid.NewV4().String()
+
+	roiEntryModel := dto.RoiEntryModel{
+		UUID:            newUUID,
+		ParticipantUUID: participantUUID,
+		ROIValue:        roiValue,
+	}
+
+	createError := databaseManager.gormClient.Create(&roiEntryModel).Error
+
+	if createError != nil {
+		return "", createError
+	}
+
+	return newUUID, nil
+}

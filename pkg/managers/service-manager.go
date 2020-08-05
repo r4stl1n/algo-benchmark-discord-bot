@@ -1,8 +1,11 @@
 package managers
 
 import (
+	"strings"
+
 	"github.com/bwmarrin/discordgo"
 	"github.com/r4stl1n/algo-benchmark-discord-bot/pkg/dto"
+	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
 )
 
@@ -95,6 +98,54 @@ func (serviceManager *ServiceManager) handleGiveIDCommand(s *discordgo.Session, 
 
 }
 
+func (serviceManager *ServiceManager) handleSubmitROI(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
+
+	if chanCreateError != nil {
+		logrus.Error(chanCreateError)
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExist(m.Author.ID) != true {
+		s.ChannelMessageSend(chanCreate.ID, "You are not registered")
+		return
+	}
+
+	participant, participantError := serviceManager.DatabaseClient.GetParticipant(m.Author.ID)
+
+	if participantError != nil {
+		logrus.Error(participantError)
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
+	}
+
+	contentSplit := strings.Split(m.Content, " ")
+
+	if len(contentSplit) != 2 {
+		s.ChannelMessageSend(chanCreate.ID, "Command incorrect ex. !registerRoi 123.45")
+		return
+	}
+
+	submittedValue, submittedValueError := decimal.NewFromString(contentSplit[1])
+
+	if submittedValueError != nil {
+		s.ChannelMessageSend(chanCreate.ID, "Submitted value is invalid")
+	}
+
+	submittedConv, _ := submittedValue.Round(3).Float64()
+
+	entryUUID, entryError := serviceManager.DatabaseClient.CreateRoiEntry(participant.UUID, submittedConv)
+
+	if entryError != nil {
+		logrus.Error(entryError)
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't submit a roi entry")
+		return
+	}
+
+	s.ChannelMessageSend(chanCreate.ID, "Submission Accepted - Submission ID: "+entryUUID)
+
+}
+
 func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Ignore all messages created by the bot itself
@@ -108,9 +159,12 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 	if m.Content == "!register" {
 
 		serviceManager.handleRegisterCommand(s, m)
-
 	} else if m.Content == "!giveid" {
+
 		serviceManager.handleGiveIDCommand(s, m)
+	} else if strings.HasPrefix(m.Content, "!submitRoi") {
+
+		serviceManager.handleSubmitROI(s, m)
 	}
 
 }

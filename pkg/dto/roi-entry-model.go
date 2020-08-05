@@ -4,7 +4,7 @@ import "github.com/jinzhu/gorm"
 
 type RoiEntryModel struct {
 	gorm.Model
-
+	UUID            string
 	ParticipantUUID string
 	ROIValue        float64
 }
