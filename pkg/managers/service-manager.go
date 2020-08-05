@@ -6,14 +6,16 @@ import (
 )
 
 type ServiceManager struct {
-	Config        *dto.ConfigStruct
-	DiscordClient *discordgo.Session
+	Config         *dto.ConfigStruct
+	DiscordClient  *discordgo.Session
+	DatabaseClient *DatabaseManager
 }
 
-func CreateServiceManager(config *dto.ConfigStruct) *ServiceManager {
+func CreateServiceManager(config *dto.ConfigStruct, databaseClient *DatabaseManager) *ServiceManager {
 
 	return &ServiceManager{
-		Config: config,
+		Config:         config,
+		DatabaseClient: databaseClient,
 	}
 
 }

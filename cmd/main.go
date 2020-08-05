@@ -46,7 +46,15 @@ func main() {
 		logrus.Fatal("Could not unmarshal config file")
 	}
 
-	serviceManager := managers.CreateServiceManager(&configStruct)
+	logrus.Info("Connecting to database")
+
+	databaseManager, databaseManagerError := managers.CreateDatabaseManager("data.db")
+
+	if databaseManagerError != nil {
+		logrus.Panic(databaseManagerError)
+	}
+
+	serviceManager := managers.CreateServiceManager(&configStruct, databaseManager)
 
 	serviceInitError := serviceManager.Initalize()
 
