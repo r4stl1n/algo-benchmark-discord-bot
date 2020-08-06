@@ -1,6 +1,8 @@
 package managers
 
 import (
+	"time"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/r4stl1n/algo-benchmark-discord-bot/pkg/dto"
@@ -83,6 +85,7 @@ func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, r
 		UUID:            newUUID,
 		ParticipantUUID: participantUUID,
 		ROIValue:        roiValue,
+		SubmissionTime:  time.Now().UTC(),
 	}
 
 	createError := databaseManager.gormClient.Create(&roiEntryModel).Error
@@ -92,4 +95,20 @@ func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, r
 	}
 
 	return newUUID, nil
+}
+
+func (databaseManager *DatabaseManager) GetLatestEntryForParticipant(participantUUID string) (bool, *dto.RoiEntryModel, error) {
+	roiEntries := []dto.RoiEntryModel{}
+
+	findError := databaseManager.gormClient.Find(&roiEntries, "participant_uuid = ?", participantUUID).Error
+
+	if findError != nil {
+		return false, &dto.RoiEntryModel{}, findError
+	}
+
+	if len(roiEntries) == 0 {
+		return false, &dto.RoiEntryModel{}, nil
+	}
+
+	return true, &roiEntries[len(roiEntries)-1], nil
 }

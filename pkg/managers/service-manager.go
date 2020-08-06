@@ -2,6 +2,7 @@ package managers
 
 import (
 	"strings"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
 	"github.com/r4stl1n/algo-benchmark-discord-bot/pkg/dto"
@@ -117,6 +118,22 @@ func (serviceManager *ServiceManager) handleSubmitROI(s *discordgo.Session, m *d
 	if participantError != nil {
 		logrus.Error(participantError)
 		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
+		return
+	}
+
+	latestSubmissionExist, latestSubmission, latestSubmissionError := serviceManager.DatabaseClient.GetLatestEntryForParticipant(participant.UUID)
+
+	if latestSubmissionError != nil {
+		logrus.Error(latestSubmissionError)
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you cannot get your latest submission")
+		return
+	}
+
+	if latestSubmissionExist == true {
+		if latestSubmission.SubmissionTime.Day() == time.Now().UTC().Day() {
+			s.ChannelMessageSend(chanCreate.ID, "You have already submitted a entry for today")
+			return
+		}
 	}
 
 	contentSplit := strings.Split(m.Content, " ")
@@ -130,6 +147,7 @@ func (serviceManager *ServiceManager) handleSubmitROI(s *discordgo.Session, m *d
 
 	if submittedValueError != nil {
 		s.ChannelMessageSend(chanCreate.ID, "Submitted value is invalid")
+		return
 	}
 
 	submittedConv, _ := submittedValue.Round(3).Float64()
