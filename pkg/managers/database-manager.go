@@ -43,10 +43,10 @@ func (databaseManager *DatabaseManager) CheckIfParticipantExist(authorID string)
 	return true
 }
 
-func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (*dto.ParticipantModel, error) {
+func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (dto.ParticipantModel, error) {
 
 	if databaseManager.CheckIfParticipantExist(authorID) != false {
-		return &dto.ParticipantModel{}, nil
+		return dto.ParticipantModel{}, nil
 	}
 
 	newUUID := uuid.NewV4().String()
@@ -60,10 +60,10 @@ func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (*dto
 	createError := databaseManager.gormClient.Create(&participantModel).Error
 
 	if createError != nil {
-		return &dto.ParticipantModel{}, createError
+		return dto.ParticipantModel{}, createError
 	}
 
-	return &participantModel, nil
+	return participantModel, nil
 }
 
 func (databaseManager *DatabaseManager) GetParticipant(authorID string) (*dto.ParticipantModel, error) {
@@ -99,35 +99,97 @@ func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, r
 	return newUUID, nil
 }
 
-func (databaseManager *DatabaseManager) GetLatestEntryForParticipant(participantUUID string) (bool, *dto.RoiEntryModel, error) {
+func (databaseManager *DatabaseManager) GetRoiEntriesForToday() ([]dto.RoiEntryModel, error) {
+	roiEntries := []dto.RoiEntryModel{}
+
+	currentTime := time.Now().UTC()
+
+	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+
+	findError := databaseManager.gormClient.Find(&roiEntries, "submission_time  > ?", newDateTime).Error
+
+	if findError != nil {
+		return roiEntries, findError
+	}
+
+	if len(roiEntries) == 0 {
+		return roiEntries, nil
+	}
+
+	return roiEntries, nil
+
+}
+
+func (databaseManager *DatabaseManager) GetLatestEntryForParticipant(participantUUID string) (bool, dto.RoiEntryModel, error) {
 	roiEntries := []dto.RoiEntryModel{}
 
 	findError := databaseManager.gormClient.Find(&roiEntries, "participant_uuid = ?", participantUUID).Error
 
 	if findError != nil {
-		return false, &dto.RoiEntryModel{}, findError
+		return false, dto.RoiEntryModel{}, findError
 	}
 
 	if len(roiEntries) == 0 {
-		return false, &dto.RoiEntryModel{}, nil
+		return false, dto.RoiEntryModel{}, nil
 	}
 
-	return true, &roiEntries[len(roiEntries)-1], nil
+	return true, roiEntries[len(roiEntries)-1], nil
 }
 
-func (databaseManager *DatabaseManager) GetDailyBmForToday() (*dto.DailyBmEntryModel, error) {
+func (databaseManager *DatabaseManager) GetDailyBmForToday() (dto.DailyBmEntryModel, error) {
 
-	dailyBmModel := new(dto.DailyBmEntryModel)
+	dailyBmModel := dto.DailyBmEntryModel{}
 
 	currentTime := time.Now().UTC()
 
-	newDateTime := time.Date(currentTime.Year, currentTime.Month, currentTime.Day, 0, 0, 0, 0, time.UTC)
+	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
 
-	findError := databaseManager.gormClient.Find(&dailyBmModel, " date > ?", newDateTime).Error
+	findError := databaseManager.gormClient.Find(&dailyBmModel, " date = ?", newDateTime).Error
 
 	if findError != nil {
 		return dailyBmModel, findError
 	}
 
 	return dailyBmModel, nil
+}
+
+func (databaseManager *DatabaseManager) CreateDailyBmEntry(startRoi float64) error {
+
+	newUUID := uuid.NewV4().String()
+
+	currentTime := time.Now().UTC()
+
+	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+
+	dailyBmEntryModel := dto.DailyBmEntryModel{
+		UUID:     newUUID,
+		ROIValue: startRoi,
+		Date:     newDateTime,
+	}
+
+	createError := databaseManager.gormClient.Create(&dailyBmEntryModel).Error
+
+	if createError != nil {
+		return createError
+	}
+
+	return nil
+}
+
+func (databaseManager *DatabaseManager) UpdateDailyBmEntry(uuid string, newValue float64) error {
+
+	dailyBmModel := dto.DailyBmEntryModel{}
+
+	findError := databaseManager.gormClient.Find(&dailyBmModel, " uuid = ?", uuid).Error
+
+	if findError != nil {
+		return findError
+	}
+
+	dailyBmModel.ROIValue = newValue
+
+	databaseManager.gormClient.Save(&dailyBmModel)
+
+	return nil
+
 }

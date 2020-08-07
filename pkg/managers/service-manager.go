@@ -160,7 +160,48 @@ func (serviceManager *ServiceManager) handleSubmitROI(s *discordgo.Session, m *d
 		return
 	}
 
+	// Entry was made now we need to calculate the dail bm
+	serviceManager.updateDailyBmEntry(submittedConv)
+
 	s.ChannelMessageSend(chanCreate.ID, "Submission Accepted - Submission ID: "+entryUUID)
+
+}
+
+func (serviceManager *ServiceManager) updateDailyBmEntry(newValue float64) {
+
+	dailyBmEntry, dailyBmEntryError := serviceManager.DatabaseClient.GetDailyBmForToday()
+
+	if dailyBmEntryError != nil {
+		serviceManager.DatabaseClient.CreateDailyBmEntry(newValue)
+		return
+	}
+
+	allTodayRoiEntries, roiEntriesError := serviceManager.DatabaseClient.GetRoiEntriesForToday()
+
+	if roiEntriesError != nil {
+		logrus.Error(roiEntriesError)
+		return
+	}
+
+	if len(allTodayRoiEntries) < 4 {
+		// We do not have enough to drop the highest and lowest we just average normally
+		currentValue := decimal.NewFromFloat(0.0)
+
+		for _, element := range allTodayRoiEntries {
+			currentValue = currentValue.Add(decimal.NewFromFloat(element.ROIValue))
+		}
+
+		newValue, _ := currentValue.Div(decimal.NewFromInt(int64(len(allTodayRoiEntries)))).Round(3).Float64()
+
+		updateError := serviceManager.DatabaseClient.UpdateDailyBmEntry(dailyBmEntry.UUID, newValue)
+
+		if updateError != nil {
+			logrus.Error(updateError)
+			return
+		}
+	}
+
+	// Calculate basic index style (Drop the highest and lowest and average the remainder
 
 }
 
