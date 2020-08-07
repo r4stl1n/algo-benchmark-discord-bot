@@ -1,13 +1,14 @@
 package dto
 
 import (
+	"time"
+
 	"github.com/jinzhu/gorm"
 )
 
-type ParticipantModel struct {
+type DailyBmEntryModel struct {
 	gorm.Model
-
 	UUID     string
-	AuthorID string
-	ApiKey   string
+	ROIValue float64
+	Date     time.Time
 }

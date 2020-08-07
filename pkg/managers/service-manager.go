@@ -62,18 +62,18 @@ func (serviceManager *ServiceManager) handleRegisterCommand(s *discordgo.Session
 		return
 	}
 
-	participantUUID, participantRegisterError := serviceManager.DatabaseClient.CreateParticipant(m.Author.ID)
+	participantModel, participantRegisterError := serviceManager.DatabaseClient.CreateParticipant(m.Author.ID)
 
 	if participantRegisterError != nil {
 		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't register")
 	}
 
 	s.ChannelMessageSend(chanCreate.ID, "Welcome to the algo-benchmark")
-	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participantUUID)
-
+	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participantModel.UUID)
+	s.ChannelMessageSend(chanCreate.ID, "Your rest api key: "+participantModel.ApiKey)
 }
 
-func (serviceManager *ServiceManager) handleGiveIDCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+func (serviceManager *ServiceManager) handleGiveInfoCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
 
@@ -96,7 +96,7 @@ func (serviceManager *ServiceManager) handleGiveIDCommand(s *discordgo.Session, 
 
 	s.ChannelMessageSend(chanCreate.ID, "Join Date: "+participant.CreatedAt.String())
 	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participant.UUID)
-
+	s.ChannelMessageSend(chanCreate.ID, "Rest api key: "+participant.ApiKey)
 }
 
 func (serviceManager *ServiceManager) handleSubmitROI(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -177,11 +177,10 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 	if m.Content == "!register" {
 
 		serviceManager.handleRegisterCommand(s, m)
-	} else if m.Content == "!giveid" {
+	} else if m.Content == "!giveInfo" {
 
-		serviceManager.handleGiveIDCommand(s, m)
+		serviceManager.handleGiveInfoCommand(s, m)
 	} else if strings.HasPrefix(m.Content, "!submitRoi") {
-
 		serviceManager.handleSubmitROI(s, m)
 	}
 

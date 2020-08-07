@@ -23,6 +23,7 @@ func CreateDatabaseManager(databaseName string) (*DatabaseManager, error) {
 
 	databaseClient.AutoMigrate(&dto.ParticipantModel{})
 	databaseClient.AutoMigrate(&dto.RoiEntryModel{})
+	databaseClient.AutoMigrate(&dto.DailyBmEntryModel{})
 
 	return &DatabaseManager{
 		gormClient: databaseClient,
@@ -42,26 +43,27 @@ func (databaseManager *DatabaseManager) CheckIfParticipantExist(authorID string)
 	return true
 }
 
-func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (string, error) {
+func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (*dto.ParticipantModel, error) {
 
 	if databaseManager.CheckIfParticipantExist(authorID) != false {
-		return "", nil
+		return &dto.ParticipantModel{}, nil
 	}
 
 	newUUID := uuid.NewV4().String()
-
+	apiKeyUUID := uuid.NewV4().String()
 	participantModel := dto.ParticipantModel{
 		UUID:     newUUID,
 		AuthorID: authorID,
+		ApiKey:   apiKeyUUID,
 	}
 
 	createError := databaseManager.gormClient.Create(&participantModel).Error
 
 	if createError != nil {
-		return "", createError
+		return &dto.ParticipantModel{}, createError
 	}
 
-	return newUUID, nil
+	return &participantModel, nil
 }
 
 func (databaseManager *DatabaseManager) GetParticipant(authorID string) (*dto.ParticipantModel, error) {
@@ -111,4 +113,21 @@ func (databaseManager *DatabaseManager) GetLatestEntryForParticipant(participant
 	}
 
 	return true, &roiEntries[len(roiEntries)-1], nil
+}
+
+func (databaseManager *DatabaseManager) GetDailyBmForToday() (*dto.DailyBmEntryModel, error) {
+
+	dailyBmModel := new(dto.DailyBmEntryModel)
+
+	currentTime := time.Now().UTC()
+
+	newDateTime := time.Date(currentTime.Year, currentTime.Month, currentTime.Day, 0, 0, 0, 0, time.UTC)
+
+	findError := databaseManager.gormClient.Find(&dailyBmModel, " date > ?", newDateTime).Error
+
+	if findError != nil {
+		return dailyBmModel, findError
+	}
+
+	return dailyBmModel, nil
 }
