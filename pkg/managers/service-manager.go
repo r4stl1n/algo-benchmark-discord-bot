@@ -71,6 +71,7 @@ func (serviceManager *ServiceManager) handleRegisterCommand(s *discordgo.Session
 	s.ChannelMessageSend(chanCreate.ID, "Welcome to the algo-benchmark")
 	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participantModel.UUID)
 	s.ChannelMessageSend(chanCreate.ID, "Your rest api key: "+participantModel.ApiKey)
+	s.ChannelMessageSend(chanCreate.ID, "Rest Api Endpoint: "+serviceManager.Config.RootURL)
 }
 
 func (serviceManager *ServiceManager) handleGiveInfoCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -94,9 +95,9 @@ func (serviceManager *ServiceManager) handleGiveInfoCommand(s *discordgo.Session
 		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
 	}
 
-	s.ChannelMessageSend(chanCreate.ID, "Join Date: "+participant.CreatedAt.String())
 	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participant.UUID)
-	s.ChannelMessageSend(chanCreate.ID, "Rest api key: "+participant.ApiKey)
+	s.ChannelMessageSend(chanCreate.ID, "Your rest api key: "+participant.ApiKey)
+	s.ChannelMessageSend(chanCreate.ID, "Rest Api Endpoint: "+serviceManager.Config.RootURL)
 }
 
 func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
