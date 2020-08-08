@@ -1,13 +1,13 @@
 package managers
 
 import (
-	"strings"
-	"time"
-
 	"github.com/bwmarrin/discordgo"
 	"github.com/r4stl1n/algo-benchmark-discord-bot/pkg/dto"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
+	"sort"
+	"strings"
+	"time"
 )
 
 type ServiceManager struct {
@@ -202,6 +202,32 @@ func (serviceManager *ServiceManager) updateDailyBmEntry(newValue float64) {
 	}
 
 	// Calculate basic index style (Drop the highest and lowest and average the remainder
+
+	sort.SliceStable(allTodayRoiEntries, func(i, j int) bool {
+		return allTodayRoiEntries[i].ROIValue < allTodayRoiEntries[j].ROIValue
+	})
+
+	// Remove the first entry
+	allTodayRoiEntries = allTodayRoiEntries[1:]
+
+	// Remove the last entry
+	allTodayRoiEntries = allTodayRoiEntries[:len(allTodayRoiEntries)-1]
+
+	// Average out and save the value
+	currentValue := decimal.NewFromFloat(0.0)
+
+	for _, element := range allTodayRoiEntries {
+		currentValue = currentValue.Add(decimal.NewFromFloat(element.ROIValue))
+	}
+
+	newValueRound, _ := currentValue.Div(decimal.NewFromInt(int64(len(allTodayRoiEntries)))).Round(3).Float64()
+
+	updateError := serviceManager.DatabaseClient.UpdateDailyBmEntry(dailyBmEntry.UUID, newValueRound)
+
+	if updateError != nil {
+		logrus.Error(updateError)
+		return
+	}
 
 }
 
