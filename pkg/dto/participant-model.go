@@ -7,8 +7,9 @@ import (
 type ParticipantModel struct {
 	gorm.Model
 
-	UUID     string
-	AuthorID string
-	ApiKey   string
-	Approved bool
+	UUID       string
+	AuthorID   string
+	ApiKey     string
+	Approved   bool
+	ApprovedBy string
 }

@@ -235,7 +235,7 @@ func (serviceManager *ServiceManager) handleApproveParticipantCommand(s *discord
 		return
 	}
 
-	serviceManager.DatabaseClient.ApproveParticipantByUUID(contentSplit[1])
+	serviceManager.DatabaseClient.ApproveParticipantByUUID(contentSplit[1], participant.UUID)
 
 	s.ChannelMessageSend(chanCreate.ID, "User approved")
 

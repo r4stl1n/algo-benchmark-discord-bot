@@ -79,7 +79,7 @@ func (databaseManager *DatabaseManager) CheckIfParticipantExistByUUID(participan
 	return true
 }
 
-func (databaseManager *DatabaseManager) ApproveParticipantByUUID(participantUUID string) bool {
+func (databaseManager *DatabaseManager) ApproveParticipantByUUID(participantUUID string, approvedBy string) bool {
 
 	participantModel := new(dto.ParticipantModel)
 
@@ -90,6 +90,7 @@ func (databaseManager *DatabaseManager) ApproveParticipantByUUID(participantUUID
 	}
 
 	participantModel.Approved = true
+	participantModel.ApprovedBy = approvedBy
 
 	databaseManager.gormClient.Save(&participantModel)
 
