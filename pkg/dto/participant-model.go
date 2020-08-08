@@ -10,4 +10,5 @@ type ParticipantModel struct {
 	UUID     string
 	AuthorID string
 	ApiKey   string
+	Approved bool
 }

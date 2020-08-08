@@ -121,6 +121,11 @@ func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Sessio
 		return
 	}
 
+	if participant.Approved != true {
+		s.ChannelMessageSend(chanCreate.ID, "You need to be approved by another approved user before you can submit")
+		return
+	}
+
 	latestSubmissionExist, latestSubmission, latestSubmissionError := serviceManager.DatabaseClient.GetLatestEntryForParticipant(participant.UUID)
 
 	if latestSubmissionError != nil {
@@ -189,6 +194,51 @@ func (serviceManager *ServiceManager) handleDailyBmCommand(s *discordgo.Session,
 	}
 
 	s.ChannelMessageSend(m.ChannelID, "Current Daily Benchmark: "+decimal.NewFromFloat(dailyBmEntry.ROIValue).String()+"%")
+}
+
+func (serviceManager *ServiceManager) handleApproveParticipantCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
+
+	if chanCreateError != nil {
+		logrus.Error(chanCreateError)
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExist(m.Author.ID) != true {
+		s.ChannelMessageSend(chanCreate.ID, "You are not registered")
+		return
+	}
+
+	participant, participantError := serviceManager.DatabaseClient.GetParticipant(m.Author.ID)
+
+	if participantError != nil {
+		logrus.Error(participantError)
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
+		return
+	}
+
+	if participant.Approved != true {
+		s.ChannelMessageSend(chanCreate.ID, "You need to be approved by another user.")
+		return
+	}
+
+	contentSplit := strings.Split(m.Content, " ")
+
+	if len(contentSplit) != 2 {
+		s.ChannelMessageSend(chanCreate.ID, "Command incorrect ex. !approve <uuid>")
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExistByUUID(contentSplit[1]) != true {
+		s.ChannelMessageSend(chanCreate.ID, "User does not exist")
+		return
+	}
+
+	serviceManager.DatabaseClient.ApproveParticipantByUUID(contentSplit[1])
+
+	s.ChannelMessageSend(chanCreate.ID, "User approved")
+
 }
 
 func (serviceManager *ServiceManager) updateDailyBmEntry(newValue float64) {
@@ -275,6 +325,8 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 		serviceManager.handleSubmitRoiCommand(s, m)
 	} else if m.Content == "!dailyBm" {
 		serviceManager.handleDailyBmCommand(s, m)
+	} else if strings.HasPrefix(m.Content, "!approve") {
+		serviceManager.handleApproveParticipantCommand(s, m)
 	}
 
 }

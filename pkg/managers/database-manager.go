@@ -30,19 +30,6 @@ func CreateDatabaseManager(databaseName string) (*DatabaseManager, error) {
 	}, nil
 }
 
-func (databaseManager *DatabaseManager) CheckIfParticipantExist(authorID string) bool {
-
-	participantModel := new(dto.ParticipantModel)
-
-	findError := databaseManager.gormClient.Find(&participantModel, "author_id = ?", authorID).Error
-
-	if findError != nil {
-		return false
-	}
-
-	return true
-}
-
 func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (dto.ParticipantModel, error) {
 
 	if databaseManager.CheckIfParticipantExist(authorID) != false {
@@ -64,6 +51,49 @@ func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (dto.
 	}
 
 	return participantModel, nil
+}
+
+func (databaseManager *DatabaseManager) CheckIfParticipantExist(authorID string) bool {
+
+	participantModel := new(dto.ParticipantModel)
+
+	findError := databaseManager.gormClient.Find(&participantModel, "author_id = ?", authorID).Error
+
+	if findError != nil {
+		return false
+	}
+
+	return true
+}
+
+func (databaseManager *DatabaseManager) CheckIfParticipantExistByUUID(participantUUID string) bool {
+
+	participantModel := new(dto.ParticipantModel)
+
+	findError := databaseManager.gormClient.Find(&participantModel, "uuid = ?", participantUUID).Error
+
+	if findError != nil {
+		return false
+	}
+
+	return true
+}
+
+func (databaseManager *DatabaseManager) ApproveParticipantByUUID(participantUUID string) bool {
+
+	participantModel := new(dto.ParticipantModel)
+
+	findError := databaseManager.gormClient.Find(&participantModel, "uuid = ?", participantUUID).Error
+
+	if findError != nil {
+		return false
+	}
+
+	participantModel.Approved = true
+
+	databaseManager.gormClient.Save(&participantModel)
+
+	return true
 }
 
 func (databaseManager *DatabaseManager) GetParticipant(authorID string) (*dto.ParticipantModel, error) {
