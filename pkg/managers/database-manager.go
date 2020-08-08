@@ -109,6 +109,19 @@ func (databaseManager *DatabaseManager) GetParticipant(authorID string) (*dto.Pa
 	return participantModel, nil
 }
 
+func (databaseManager *DatabaseManager) GetParticipantByUUID(uuid string) (*dto.ParticipantModel, error) {
+
+	participantModel := new(dto.ParticipantModel)
+
+	findError := databaseManager.gormClient.Find(&participantModel, "uuid = ?", uuid).Error
+
+	if findError != nil {
+		return participantModel, findError
+	}
+
+	return participantModel, nil
+}
+
 func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, roiValue float64) (string, error) {
 
 	newUUID := uuid.NewV4().String()
@@ -181,6 +194,19 @@ func (databaseManager *DatabaseManager) GetDailyBmForToday() (dto.DailyBmEntryMo
 	}
 
 	return dailyBmModel, nil
+}
+
+func (databaseManager *DatabaseManager) GetAllDailyBmEntries() ([]dto.DailyBmEntryModel, error) {
+
+	roiEntries := []dto.DailyBmEntryModel{}
+
+	findError := databaseManager.gormClient.Find(&roiEntries).Error
+
+	if findError != nil {
+		return roiEntries, findError
+	}
+
+	return roiEntries, nil
 }
 
 func (databaseManager *DatabaseManager) CreateDailyBmEntry(startRoi float64) error {
