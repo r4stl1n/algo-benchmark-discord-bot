@@ -99,7 +99,7 @@ func (serviceManager *ServiceManager) handleGiveInfoCommand(s *discordgo.Session
 	s.ChannelMessageSend(chanCreate.ID, "Rest api key: "+participant.ApiKey)
 }
 
-func (serviceManager *ServiceManager) handleSubmitROI(s *discordgo.Session, m *discordgo.MessageCreate) {
+func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
 
@@ -165,6 +165,30 @@ func (serviceManager *ServiceManager) handleSubmitROI(s *discordgo.Session, m *d
 
 	s.ChannelMessageSend(chanCreate.ID, "Submission Accepted - Submission ID: "+entryUUID)
 
+}
+
+func (serviceManager *ServiceManager) handleDailyBmCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
+
+	if chanCreateError != nil {
+		logrus.Error(chanCreateError)
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExist(m.Author.ID) != true {
+		s.ChannelMessageSend(chanCreate.ID, "You are not registered")
+		return
+	}
+
+	dailyBmEntry, dailyBmEntryError := serviceManager.DatabaseClient.GetDailyBmForToday()
+
+	if dailyBmEntryError != nil {
+		s.ChannelMessageSend(m.ChannelID, "No submissions for today")
+		return
+	}
+
+	s.ChannelMessageSend(m.ChannelID, "Current Daily Benchmark: "+decimal.NewFromFloat(dailyBmEntry.ROIValue).String()+"%")
 }
 
 func (serviceManager *ServiceManager) updateDailyBmEntry(newValue float64) {
@@ -244,13 +268,13 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 	logrus.Debug("Got message from user: " + m.Author.ID + " - " + m.Content)
 
 	if m.Content == "!register" {
-
 		serviceManager.handleRegisterCommand(s, m)
 	} else if m.Content == "!giveInfo" {
-
 		serviceManager.handleGiveInfoCommand(s, m)
 	} else if strings.HasPrefix(m.Content, "!submitRoi") {
-		serviceManager.handleSubmitROI(s, m)
+		serviceManager.handleSubmitRoiCommand(s, m)
+	} else if m.Content == "!dailyBm" {
+		serviceManager.handleDailyBmCommand(s, m)
 	}
 
 }
