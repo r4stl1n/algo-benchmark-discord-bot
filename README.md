@@ -21,9 +21,13 @@ Before submission users must be approved by another existing user. This is to av
 
 Approved users also have access to three api endpoints. They must include the following two header values in their request
 
+Headers:
 * ABDB-PARTICIPANT-ID - The Participant ID given to them by the bot in discord
 * ABDB-REST-API-KEY - The Rest api token given to them by the bot in discord.
 
+-------
+
+Api Endpoints:
 
 * /api/healthCheck - Blank health check to see if the api service is online
 * /api/getDailyBm - Returns the current days benchmark has a json struct
