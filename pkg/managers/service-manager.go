@@ -25,7 +25,7 @@ func CreateServiceManager(config *dto.ConfigStruct, databaseClient *DatabaseMana
 
 }
 
-func (serviceManager *ServiceManager) Initalize() error {
+func (serviceManager *ServiceManager) Initialize() error {
 
 	discordClient, discordClientError := discordgo.New("Bot " + serviceManager.Config.BotToken)
 
@@ -37,7 +37,7 @@ func (serviceManager *ServiceManager) Initalize() error {
 
 	serviceManager.DiscordClient.AddHandler(serviceManager.messageHandler)
 
-	serviceManager.DiscordClient.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsGuildMessages)
+	serviceManager.DiscordClient.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAllWithoutPrivileged)
 
 	discordWebsocketError := serviceManager.DiscordClient.Open()
 

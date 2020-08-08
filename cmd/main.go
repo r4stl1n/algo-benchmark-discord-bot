@@ -58,7 +58,7 @@ func main() {
 
 	serviceManager := managers.CreateServiceManager(&configStruct, databaseManager)
 
-	serviceInitError := serviceManager.Initalize()
+	serviceInitError := serviceManager.Initialize()
 
 	if serviceInitError != nil {
 		logrus.Fatal(serviceInitError)
