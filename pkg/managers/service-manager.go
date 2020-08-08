@@ -199,6 +199,8 @@ func (serviceManager *ServiceManager) updateDailyBmEntry(newValue float64) {
 			logrus.Error(updateError)
 			return
 		}
+
+		return
 	}
 
 	// Calculate basic index style (Drop the highest and lowest and average the remainder
