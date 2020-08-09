@@ -431,7 +431,7 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 		serviceManager.handleShowLeaderBoardCommand(s, m)
 	} else if strings.HasPrefix(m.Content, "!approve") {
 		serviceManager.handleApproveParticipantCommand(s, m)
-	} else if m.Content == "!toggleLeaderboard" {
+	} else if m.Content == "!toggleLeaderBoard" {
 		serviceManager.handleToggleLeaderboardCommand(s, m)
 	}
 
