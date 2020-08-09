@@ -305,7 +305,7 @@ func (serviceManager *ServiceManager) updateDailyBmEntry(newValue float64) {
 
 }
 
-func (serviceManager *ServiceManager) handleShowDailySubmissionsCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+func (serviceManager *ServiceManager) handleShowLeaderBoardCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
 
@@ -416,7 +416,8 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 		return
 	}
 
-	logrus.Debug("Got message from user: " + m.Author.ID + " - " + m.Content)
+	// Uncomment to see messages incoming to the bot
+	//logrus.Debug("Got message from user: " + m.Author.ID + " - " + m.Content)
 
 	if m.Content == "!register" {
 		serviceManager.handleRegisterCommand(s, m)
@@ -426,8 +427,8 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 		serviceManager.handleSubmitRoiCommand(s, m)
 	} else if m.Content == "!dailyBm" {
 		serviceManager.handleDailyBmCommand(s, m)
-	} else if m.Content == "!showDailySubmissions" {
-		serviceManager.handleShowDailySubmissionsCommand(s, m)
+	} else if m.Content == "!showLeaderBoard" {
+		serviceManager.handleShowLeaderBoardCommand(s, m)
 	} else if strings.HasPrefix(m.Content, "!approve") {
 		serviceManager.handleApproveParticipantCommand(s, m)
 	} else if m.Content == "!toggleLeaderboard" {

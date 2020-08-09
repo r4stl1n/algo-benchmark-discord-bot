@@ -16,7 +16,9 @@ Before submission users must be approved by another existing user. This is to av
 * !approve <uuid> - An approved user can approve another user to submit roi to the benchmark bot and have access to the rest api
 * !submitRoi <roiAmount> - An approved user can submit their current daily close roi ex. !submitRoi 0.25 (For 0.25%)
 * !dailyBm - An approved user can request the dailyBm be displayed in the channel it was sent in
-
+* !showLeaderBoard - Shows the current leaderboard for the days submissions
+* !toggleLeaderBoard - Toggles the users show name in leaderboard setting
+ 
 ## Rest Api Calls
 
 Approved users also have access to three api endpoints. They must include the following two header values in their request
