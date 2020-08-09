@@ -30,7 +30,7 @@ func CreateDatabaseManager(databaseName string) (*DatabaseManager, error) {
 	}, nil
 }
 
-func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (dto.ParticipantModel, error) {
+func (databaseManager *DatabaseManager) CreateParticipant(authorID string, username string) (dto.ParticipantModel, error) {
 
 	if databaseManager.CheckIfParticipantExist(authorID) != false {
 		return dto.ParticipantModel{}, nil
@@ -39,9 +39,11 @@ func (databaseManager *DatabaseManager) CreateParticipant(authorID string) (dto.
 	newUUID := uuid.NewV4().String()
 	apiKeyUUID := uuid.NewV4().String()
 	participantModel := dto.ParticipantModel{
-		UUID:     newUUID,
-		AuthorID: authorID,
-		ApiKey:   apiKeyUUID,
+		UUID:                  newUUID,
+		AuthorID:              authorID,
+		ApiKey:                apiKeyUUID,
+		Username:              username,
+		ShowNameInLeaderboard: false,
 	}
 
 	createError := databaseManager.gormClient.Create(&participantModel).Error
@@ -121,6 +123,23 @@ func (databaseManager *DatabaseManager) GetParticipantByUUID(uuid string) (*dto.
 	}
 
 	return participantModel, nil
+}
+
+func (databaseManager *DatabaseManager) ShowNameInLeaderboardParticipantByUUID(participantUUID string, showName bool) bool {
+
+	participantModel := new(dto.ParticipantModel)
+
+	findError := databaseManager.gormClient.Find(&participantModel, "uuid = ?", participantUUID).Error
+
+	if findError != nil {
+		return false
+	}
+
+	participantModel.ShowNameInLeaderboard = showName
+
+	databaseManager.gormClient.Save(&participantModel)
+
+	return true
 }
 
 func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, roiValue float64) (string, error) {

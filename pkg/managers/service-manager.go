@@ -2,6 +2,7 @@ package managers
 
 import (
 	"github.com/bwmarrin/discordgo"
+	"github.com/olekukonko/tablewriter"
 	"github.com/r4stl1n/algo-benchmark-discord-bot/pkg/dto"
 	"github.com/shopspring/decimal"
 	"github.com/sirupsen/logrus"
@@ -62,16 +63,14 @@ func (serviceManager *ServiceManager) handleRegisterCommand(s *discordgo.Session
 		return
 	}
 
-	participantModel, participantRegisterError := serviceManager.DatabaseClient.CreateParticipant(m.Author.ID)
+	participantModel, participantRegisterError := serviceManager.DatabaseClient.CreateParticipant(m.Author.ID, m.Author.Username)
 
 	if participantRegisterError != nil {
 		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't register")
 	}
 
 	s.ChannelMessageSend(chanCreate.ID, "Welcome to the algo-benchmark")
-	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participantModel.UUID)
-	s.ChannelMessageSend(chanCreate.ID, "Your rest api key: "+participantModel.ApiKey)
-	s.ChannelMessageSend(chanCreate.ID, "Rest Api Endpoint: "+serviceManager.Config.RootURL)
+	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participantModel.UUID+"\n"+"Your rest api key: "+participantModel.ApiKey+"\n"+"Rest Api Endpoint: "+serviceManager.Config.RootURL)
 }
 
 func (serviceManager *ServiceManager) handleGiveInfoCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -88,16 +87,14 @@ func (serviceManager *ServiceManager) handleGiveInfoCommand(s *discordgo.Session
 		return
 	}
 
-	participant, participantError := serviceManager.DatabaseClient.GetParticipant(m.Author.ID)
+	participantModel, participantError := serviceManager.DatabaseClient.GetParticipant(m.Author.ID)
 
 	if participantError != nil {
 		logrus.Error(participantError)
 		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
 	}
 
-	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participant.UUID)
-	s.ChannelMessageSend(chanCreate.ID, "Your rest api key: "+participant.ApiKey)
-	s.ChannelMessageSend(chanCreate.ID, "Rest Api Endpoint: "+serviceManager.Config.RootURL)
+	s.ChannelMessageSend(chanCreate.ID, "Your participant ID: "+participantModel.UUID+"\n"+"Your rest api key: "+participantModel.ApiKey+"\n"+"Rest Api Endpoint: "+serviceManager.Config.RootURL)
 }
 
 func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -308,6 +305,109 @@ func (serviceManager *ServiceManager) updateDailyBmEntry(newValue float64) {
 
 }
 
+func (serviceManager *ServiceManager) handleShowDailySubmissionsCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
+
+	if chanCreateError != nil {
+		logrus.Error(chanCreateError)
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExist(m.Author.ID) != true {
+		s.ChannelMessageSend(chanCreate.ID, "You are not registered")
+		return
+	}
+
+	participant, participantError := serviceManager.DatabaseClient.GetParticipant(m.Author.ID)
+
+	if participantError != nil {
+		logrus.Error(participantError)
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
+		return
+	}
+
+	if participant.Approved != true {
+		s.ChannelMessageSend(chanCreate.ID, "You need to be approved by another user.")
+		return
+	}
+
+	allTodayRoiEntries, roiEntriesError := serviceManager.DatabaseClient.GetRoiEntriesForToday()
+
+	if roiEntriesError != nil {
+		logrus.Error(roiEntriesError)
+		s.ChannelMessageSend(m.ChannelID, "Failed to retrieve all roi entries")
+		return
+	}
+
+	sort.SliceStable(allTodayRoiEntries, func(i, j int) bool {
+		return allTodayRoiEntries[i].ROIValue < allTodayRoiEntries[j].ROIValue
+	})
+
+	tableData := [][]string{}
+
+	for _, entry := range allTodayRoiEntries {
+
+		nameToShow := entry.ParticipantUUID[:8]
+		participantModel, participantModelError := serviceManager.DatabaseClient.GetParticipantByUUID(entry.ParticipantUUID)
+
+		if participantModelError == nil {
+			if participantModel.ShowNameInLeaderboard == true {
+				nameToShow = participantModel.Username
+			}
+		}
+
+		tableData = append(tableData, []string{nameToShow, entry.SubmissionTime.Format(time.RFC822), decimal.NewFromFloat(entry.ROIValue).String()})
+	}
+
+	tableString := &strings.Builder{}
+	table := tablewriter.NewWriter(tableString)
+
+	table.SetHeader([]string{"Participant", "Time", "ROI%"})
+
+	table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+	table.SetCenterSeparator("|")
+	for _, v := range tableData {
+		table.Append(v)
+	}
+
+	table.Render()
+	s.ChannelMessageSend(m.ChannelID, "Current Leader board\n```"+tableString.String()+"```")
+}
+
+func (serviceManager *ServiceManager) handleToggleLeaderboardCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
+
+	chanCreate, chanCreateError := s.UserChannelCreate(m.Author.ID)
+
+	if chanCreateError != nil {
+		logrus.Error(chanCreateError)
+		return
+	}
+
+	if serviceManager.DatabaseClient.CheckIfParticipantExist(m.Author.ID) != true {
+		s.ChannelMessageSend(chanCreate.ID, "You are not registered")
+		return
+	}
+
+	participantModel, participantError := serviceManager.DatabaseClient.GetParticipant(m.Author.ID)
+
+	if participantError != nil {
+		logrus.Error(participantError)
+		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't get your id")
+	}
+
+	if participantModel.ShowNameInLeaderboard == false {
+		serviceManager.DatabaseClient.ShowNameInLeaderboardParticipantByUUID(participantModel.UUID, true)
+		s.ChannelMessageSend(chanCreate.ID, "Your name will now show up in the leaderboard")
+		return
+	}
+
+	serviceManager.DatabaseClient.ShowNameInLeaderboardParticipantByUUID(participantModel.UUID, false)
+	s.ChannelMessageSend(chanCreate.ID, "Your name will now be hidden in the leaderboard")
+	return
+
+}
+
 func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *discordgo.MessageCreate) {
 
 	// Ignore all messages created by the bot itself
@@ -326,8 +426,12 @@ func (serviceManager *ServiceManager) messageHandler(s *discordgo.Session, m *di
 		serviceManager.handleSubmitRoiCommand(s, m)
 	} else if m.Content == "!dailyBm" {
 		serviceManager.handleDailyBmCommand(s, m)
+	} else if m.Content == "!showDailySubmissions" {
+		serviceManager.handleShowDailySubmissionsCommand(s, m)
 	} else if strings.HasPrefix(m.Content, "!approve") {
 		serviceManager.handleApproveParticipantCommand(s, m)
+	} else if m.Content == "!toggleLeaderboard" {
+		serviceManager.handleToggleLeaderboardCommand(s, m)
 	}
 
 }
