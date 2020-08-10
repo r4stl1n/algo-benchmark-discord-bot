@@ -146,11 +146,13 @@ func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, r
 
 	newUUID := uuid.NewV4().String()
 
+	location, _ := time.LoadLocation("America/New_York")
+
 	roiEntryModel := dto.RoiEntryModel{
 		UUID:            newUUID,
 		ParticipantUUID: participantUUID,
 		ROIValue:        roiValue,
-		SubmissionTime:  time.Now().UTC(),
+		SubmissionTime:  time.Now().In(location),
 	}
 
 	createError := databaseManager.gormClient.Create(&roiEntryModel).Error
@@ -165,9 +167,11 @@ func (databaseManager *DatabaseManager) CreateRoiEntry(participantUUID string, r
 func (databaseManager *DatabaseManager) GetRoiEntriesForToday() ([]dto.RoiEntryModel, error) {
 	roiEntries := []dto.RoiEntryModel{}
 
-	currentTime := time.Now().UTC()
+	location, _ := time.LoadLocation("America/New_York")
 
-	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+	currentTime := time.Now().In(location)
+
+	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, location)
 
 	findError := databaseManager.gormClient.Find(&roiEntries, "submission_time  > ?", newDateTime).Error
 
@@ -203,9 +207,11 @@ func (databaseManager *DatabaseManager) GetDailyBmForToday() (dto.DailyBmEntryMo
 
 	dailyBmModel := dto.DailyBmEntryModel{}
 
-	currentTime := time.Now().UTC()
+	location, _ := time.LoadLocation("America/New_York")
 
-	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+	currentTime := time.Now().In(location)
+
+	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, location)
 
 	findError := databaseManager.gormClient.Find(&dailyBmModel, " date = ?", newDateTime).Error
 
@@ -233,9 +239,11 @@ func (databaseManager *DatabaseManager) CreateDailyBmEntry(startRoi float64) err
 
 	newUUID := uuid.NewV4().String()
 
-	currentTime := time.Now().UTC()
+	location, _ := time.LoadLocation("America/New_York")
 
-	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, time.UTC)
+	currentTime := time.Now().In(location)
+
+	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, location)
 
 	dailyBmEntryModel := dto.DailyBmEntryModel{
 		UUID:     newUUID,
@@ -268,4 +276,21 @@ func (databaseManager *DatabaseManager) UpdateDailyBmEntry(uuid string, newValue
 
 	return nil
 
+}
+
+func (databaseManager *DatabaseManager) UpdateLatestEntryForParticipant(participantUUID string, newRoiValue float64)  error {
+	roiEntries := []dto.RoiEntryModel{}
+
+	findError := databaseManager.gormClient.Find(&roiEntries, "participant_uuid = ?", participantUUID).Error
+
+	if findError != nil {
+		return  findError
+	}
+
+	latestEntry := roiEntries[len(roiEntries)-1]
+	latestEntry.ROIValue = newRoiValue
+
+	databaseManager.gormClient.Save(&latestEntry)
+
+	return  nil
 }

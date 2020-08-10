@@ -132,13 +132,6 @@ func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Sessio
 		return
 	}
 
-	if latestSubmissionExist == true {
-		if latestSubmission.SubmissionTime.Day() == time.Now().UTC().Day() {
-			s.ChannelMessageSend(chanCreate.ID, "You have already submitted a entry for today")
-			return
-		}
-	}
-
 	contentSplit := strings.Split(m.Content, " ")
 
 	if len(contentSplit) != 2 {
@@ -155,19 +148,35 @@ func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Sessio
 
 	submittedConv, _ := submittedValue.Round(3).Float64()
 
-	entryUUID, entryError := serviceManager.DatabaseClient.CreateRoiEntry(participant.UUID, submittedConv)
+	if latestSubmissionExist == true {
 
-	if entryError != nil {
-		logrus.Error(entryError)
-		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't submit a roi entry")
-		return
+		entryError := serviceManager.DatabaseClient.UpdateLatestEntryForParticipant(participant.UUID, submittedConv)
+
+		if entryError != nil {
+			logrus.Error(entryError)
+			s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't submit a roi entry")
+			return
+		}
+
+		// Entry was made now we need to calculate the dail bm
+		serviceManager.updateDailyBmEntry(submittedConv)
+
+		s.ChannelMessageSend(chanCreate.ID, "Update Accepted - Submission ID: "+latestSubmission.UUID)
+
+	} else {
+		entryUUID, entryError := serviceManager.DatabaseClient.CreateRoiEntry(participant.UUID, submittedConv)
+
+		if entryError != nil {
+			logrus.Error(entryError)
+			s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you can't submit a roi entry")
+			return
+		}
+
+		// Entry was made now we need to calculate the dail bm
+		serviceManager.updateDailyBmEntry(submittedConv)
+
+		s.ChannelMessageSend(chanCreate.ID, "Submission Accepted - Submission ID: "+entryUUID)
 	}
-
-	// Entry was made now we need to calculate the dail bm
-	serviceManager.updateDailyBmEntry(submittedConv)
-
-	s.ChannelMessageSend(chanCreate.ID, "Submission Accepted - Submission ID: "+entryUUID)
-
 }
 
 func (serviceManager *ServiceManager) handleDailyBmCommand(s *discordgo.Session, m *discordgo.MessageCreate) {
