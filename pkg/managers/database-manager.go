@@ -187,8 +187,9 @@ func (databaseManager *DatabaseManager) GetRoiEntriesForToday() ([]dto.RoiEntryM
 
 }
 
-func (databaseManager *DatabaseManager) GetCurrentDaySubmissionForParticipant(participantUUID string) (bool, dto.RoiEntryModel, error) {
-	roiEntries := []dto.RoiEntryModel{}
+func (databaseManager *DatabaseManager) GetCurrentDaySubmissionForParticipant(participantUUID string) (dto.RoiEntryModel, error) {
+
+	roiEntries := dto.RoiEntryModel{}
 
 	location, _ := time.LoadLocation("America/New_York")
 
@@ -202,11 +203,7 @@ func (databaseManager *DatabaseManager) GetCurrentDaySubmissionForParticipant(pa
 		return false, dto.RoiEntryModel{}, findError
 	}
 
-	if len(roiEntries) == 0 {
-		return false, dto.RoiEntryModel{}, nil
-	}
-
-	return true, roiEntries[len(roiEntries)-1], nil
+	return true, roiEntries, nil
 }
 
 func (databaseManager *DatabaseManager) GetDailyBmForToday() (dto.DailyBmEntryModel, error) {
@@ -284,13 +281,13 @@ func (databaseManager *DatabaseManager) UpdateDailyBmEntry(uuid string, newValue
 
 }
 
-func (databaseManager *DatabaseManager) UpdateLatestEntryForParticipant(participantUUID string, newRoiValue float64)  error {
+func (databaseManager *DatabaseManager) UpdateLatestEntryForParticipant(participantUUID string, newRoiValue float64) error {
 	roiEntries := []dto.RoiEntryModel{}
 
 	findError := databaseManager.gormClient.Find(&roiEntries, "participant_uuid = ?", participantUUID).Error
 
 	if findError != nil {
-		return  findError
+		return findError
 	}
 
 	latestEntry := roiEntries[len(roiEntries)-1]
@@ -298,5 +295,5 @@ func (databaseManager *DatabaseManager) UpdateLatestEntryForParticipant(particip
 
 	databaseManager.gormClient.Save(&latestEntry)
 
-	return  nil
+	return nil
 }

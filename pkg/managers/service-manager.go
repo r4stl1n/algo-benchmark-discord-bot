@@ -124,14 +124,6 @@ func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Sessio
 		return
 	}
 
-	latestSubmissionExist, latestSubmission, latestSubmissionError := serviceManager.DatabaseClient.GetCurrentDaySubmissionForParticipant(participant.UUID)
-
-	if latestSubmissionError != nil {
-		logrus.Error(latestSubmissionError)
-		s.ChannelMessageSend(chanCreate.ID, "Something broke tell the owner you cannot get your latest submission")
-		return
-	}
-
 	contentSplit := strings.Split(m.Content, " ")
 
 	if len(contentSplit) != 2 {
@@ -148,7 +140,9 @@ func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Sessio
 
 	submittedConv, _ := submittedValue.Round(3).Float64()
 
-	if latestSubmissionExist == true {
+	latestSubmission, latestSubmissionError := serviceManager.DatabaseClient.GetCurrentDaySubmissionForParticipant(participant.UUID)
+
+	if latestSubmissionError == nil {
 
 		entryError := serviceManager.DatabaseClient.UpdateLatestEntryForParticipant(participant.UUID, submittedConv)
 
