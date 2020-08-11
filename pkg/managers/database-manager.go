@@ -200,10 +200,10 @@ func (databaseManager *DatabaseManager) GetCurrentDaySubmissionForParticipant(pa
 	findError := databaseManager.gormClient.Find(&roiEntries, "submission_time > ?", newDateTime).Error
 
 	if findError != nil {
-		return false, dto.RoiEntryModel{}, findError
+		return dto.RoiEntryModel{}, findError
 	}
 
-	return true, roiEntries, nil
+	return roiEntries, nil
 }
 
 func (databaseManager *DatabaseManager) GetDailyBmForToday() (dto.DailyBmEntryModel, error) {
