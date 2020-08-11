@@ -124,7 +124,7 @@ func (serviceManager *ServiceManager) handleSubmitRoiCommand(s *discordgo.Sessio
 		return
 	}
 
-	latestSubmissionExist, latestSubmission, latestSubmissionError := serviceManager.DatabaseClient.GetLatestEntryForParticipant(participant.UUID)
+	latestSubmissionExist, latestSubmission, latestSubmissionError := serviceManager.DatabaseClient.GetCurrentDaySubmissionForParticipant(participant.UUID)
 
 	if latestSubmissionError != nil {
 		logrus.Error(latestSubmissionError)

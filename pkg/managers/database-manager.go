@@ -187,10 +187,16 @@ func (databaseManager *DatabaseManager) GetRoiEntriesForToday() ([]dto.RoiEntryM
 
 }
 
-func (databaseManager *DatabaseManager) GetLatestEntryForParticipant(participantUUID string) (bool, dto.RoiEntryModel, error) {
+func (databaseManager *DatabaseManager) GetCurrentDaySubmissionForParticipant(participantUUID string) (bool, dto.RoiEntryModel, error) {
 	roiEntries := []dto.RoiEntryModel{}
 
-	findError := databaseManager.gormClient.Find(&roiEntries, "participant_uuid = ?", participantUUID).Error
+	location, _ := time.LoadLocation("America/New_York")
+
+	currentTime := time.Now().In(location)
+
+	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, location)
+
+	findError := databaseManager.gormClient.Find(&roiEntries, "submission_time > ?", newDateTime).Error
 
 	if findError != nil {
 		return false, dto.RoiEntryModel{}, findError
