@@ -197,7 +197,7 @@ func (databaseManager *DatabaseManager) GetCurrentDaySubmissionForParticipant(pa
 
 	newDateTime := time.Date(currentTime.Year(), currentTime.Month(), currentTime.Day(), 0, 0, 0, 0, location)
 
-	findError := databaseManager.gormClient.Find(&roiEntries, "submission_time > ?", newDateTime).Error
+	findError := databaseManager.gormClient.Find(&roiEntries, "submission_time > ?", newDateTime).Where("participant_uuid = ? ", participantUUID).Error
 
 	if findError != nil {
 		return dto.RoiEntryModel{}, findError
